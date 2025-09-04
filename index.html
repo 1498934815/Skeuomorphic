@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片格式批量转换工具 - Skeuomorphic</title>
+    <link rel="icon" href="https://github.com/1498934815/Skeuomorphic/js/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="js/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>    
+<body>
+    <header>
+        <div class="logo">
+            <div class="logo-frame">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 8.5c0-.828.672-1.5 1.5-1.5s1.5.672 1.5 1.5S7.328 10 6.5 10 5 9.328 5 8.5zm9 .5l-2.519 4-2.481-1.96-5 6.96h16l-6-9zm8.5-5c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5zm-13-3c-2.761 0-5 2.239-5 5s2.239 5 5 5 5-2.239 5-5-2.239-5-5-5z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="logo-text">
+                <h1></h1>
+            </div>
+        </div>
+        <p class="subtitle">支持批量格式转换、压缩，所有处理均在浏览器中完成</p>
+    </header>
+    <div class="container">
+        <div class="panel">
+            <h2 class="panel-title"> 上传图片</h2>
+            <div class="drop-area" id="dropArea">
+                <p class="drop-text">拖放图片到此处 (支持多文件)</p>
+                <p>或</p>
+                <button class="btn" id="browseBtn"> 选择图片</button>
+                <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+            </div>
+            <div class="file-list" id="fileList">
+                <p id="emptyListMessage">已上传文件将显示在这里</p>
+            </div>
+            <div class="batch-controls">
+                <button class="btn btn-danger" id="clearAllBtn"> 清空列表</button>
+                <button class="btn btn-secondary" id="selectAllBtn"> 全选</button>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="format">格式转换</div>
+                <div class="tab" data-tab="size">大小调整</div>
+            </div>
+            <div class="tab-content active" id="formatTab">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="outputFormat"> 转换为格式：</label>
+                        <select id="outputFormat">
+                            <option value="png">PNG (推荐)</option>
+                            <option value="jpeg">JPG/JPEG</option>
+                            <option value="webp">WebP (现代格式)</option>
+                            <option value="svg">SVG (base64格式)</option>                            
+                            <option value="bmp">BMP (无压缩)</option>
+                        </select>
+                        <div class="svg-info hidden" id="svgInfo">
+                             SVG转换会将图片矢量化，适合图标和简单图形
+                        </div>
+                    </div>
+                    <div class="control-group" id="qualityControl">
+                        <label for="quality"> 输出质量：</label>
+                        <div class="slider-container">
+                            <input type="range" id="quality" min="1" max="100" value="90">
+                            <span id="qualityValue">90%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="sizeTab">
+                <div class="controls">
+                    <div class="control-group">
+                        <label> 调整方式：</label>
+                        <select id="resizeMethod">
+                            <option value="percentage">百分比缩放</option>
+                            <option value="dimension">指定尺寸</option>
+                        </select>
+                    </div>
+                    <div class="control-group" id="percentageControl">
+                        <label for="resizePercentage"> 缩放百分比：</label>
+                        <div class="slider-container">
+                            <input type="range" id="resizePercentage" min="10" max="200" value="100">
+                            <span id="percentageValue">100%</span>
+                        </div>
+                    </div>
+                    <div class="control-group" id="dimensionControl">
+                        <label for="targetWidth"> 目标尺寸：</label>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <input type="number" id="targetWidth" placeholder="宽度" min="10" value="800">
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="number" id="targetHeight" placeholder="高度" min="10" value="600">
+                            </div>
+                        </div>
+                        <div class="image-dimensions" id="imageDimensions">原始尺寸: 0 × 0 像素</div>
+                        <div style="margin-top: 10px;">
+                            <label>
+                                <input type="checkbox" id="keepAspect" checked> 保持宽高比
+                            </label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label> 旋转与翻转：</label>
+                        <div class="action-buttons">
+                            <button class="action-btn" id="rotateLeftBtn"> 左转90°</button>
+                            <button class="action-btn" id="rotateRightBtn"> 右转90°</button>
+                            <button class="action-btn" id="flipHorizontalBtn"> 水平翻转</button>
+                            <button class="action-btn" id="flipVerticalBtn"> 垂直翻转</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn" id="convertBtn"> 转换所有图片</button>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-status" id="progressStatus">准备就绪</div>
+        </div>
+        <div class="panel">
+            <h2 class="panel-title"> 转换结果</h2>
+            <div class="preview-container">
+                <p class="preview-title"> 预览效果</p>
+                <div class="preview-box" id="previewBox">
+                    <p>转换后的图片将显示在这里</p>
+                </div>
+                <div class="format-info">
+                    <span id="originalInfo"></span>
+                    <span id="convertedInfo"></span>
+                </div>
+            </div>
+            <div class="batch-controls">
+                <button class="btn download-btn hidden" id="downloadSelectedBtn"> 下载选中文件</button>
+                <button class="btn btn-success download-btn hidden" id="downloadAllBtn"> 下载全部 (ZIP)</button>
+            </div>
+            <div class="info">
+                <h3> 转换说明：</h3>
+                <ul>
+                    <li>所有转换在浏览器中完成，不上传服务器</li>
+                    <li>原始图片大小限制为10MB以内</li>
+                    <li>支持格式：PNG, JPG, GIF, BMP, WebP, SVG</li>
+                    <li>SVG转换使用高级矢量化算法</li>
+                    <li>可批量处理多个图片文件</li>
+                    <li>支持下载单个文件或打包下载</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>© 2025 图片格式批量转换工具 | 所有处理均在本地浏览器中完成，保护您的隐私</p>
+    </footer>
+    <script src="js/main.js"></script>
+</body>
+</html>
